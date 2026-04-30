@@ -1,0 +1,64 @@
+Aula_11
+Anotações de comando e do código
+
+Passo 1:
+npm init -y: a flag -y responde "sim" para todas as perguntas automaticamente. isso cria um arquivo package.json na pasta.
+- O package.json é o "RG" do projeto: guarda o nome, versão, dependências e scripts de execução;
+
+npm istall express: cria a pasta node modules com o código do express criar arquivo package-lock.json. Não se deve subir a pasta node modules para o GitHub. usar .gitignore
+
+anotações do código em index.js:
+
+import express from 'express';
+Importa o Express que você instalou com o npm install. É como dizer "traga a ferramenta Express para dentro deste arquivo". Sem isso, o restante do código não tem acesso ao framework.
+
+const app = express();
+Chama o Express como uma função, e ele devolve um objeto — que a gente guarda na variável app. É esse objeto app que representa o seu servidor. Tudo que você fizer daqui pra frente (criar rotas, adicionar middlewares) vai ser feito através dele.
+
+const PORTA = 3000;
+Só uma variável guardando o número da porta. Uma porta é como um "endereço de entrada" do servidor na sua máquina. A porta 3000 é a que você vai digitar no navegador: http://localhost:3000. Poderia ser qualquer outro número (8080, 5000...), mas 3000 é convenção em projetos Node.
+
+app.listen(PORTA, () => { ... })
+Essa é a linha que de fato liga o servidor. O app.listen faz duas coisas:
+
+Começa a "escutar" por requisições na porta 3000
+Quando o servidor terminar de subir, executa a função () => { ... } uma única vez para avisar que está no ar
+
+A função passada como segundo argumento é um callback — um conceito da Unidade 1. Ela só roda quando o servidor estiver pronto.
+
+Passo 2:
+adicionar 3 coisas no index.js: middleware de JSON, banco em memória e as primeiras rotas GET
+
+app.use(express.json()) — sem isso, quando o frontend mandar dados para o servidor (num POST, por exemplo), o req.body vai chegar undefined. Essa linha ativa o "tradutor" de JSON.
+->	O express.json() é um middleware que intercepta cada requisição e verifica: "o corpo dessa requisição tem JSON?". Se tiver, ele transforma a string JSON em um objeto JavaScript e coloca em req.body. Se não fizer isso, req.body chega undefined na sua rota.
+->	Outros exemplos do que um middleware pode fazer: registrar logs, verificar se o usuário está autenticado, checar se um campo obrigatório veio no body. 
+
+->	A linha app.use(...) é o que registra um middleware para rodar em todas as rotas. A ordem importa: o que for declarado primeiro, roda primeiro. Por isso o express.json() fica antes de todas as rotas.
+
+let pets = [...] — é o banco de dados da aula. Um array comum do JavaScript com dois pets já cadastrados para você testar. Usamos let em vez de const porque mais pra frente o DELETE vai reatribuir o array inteiro.
+
+app.get('/pets', ...) — cria a primeira rota. Quando alguém fizer uma requisição GET
+
+	app.get — diz ao Express: "quero registrar uma rota que responde ao método HTTP GET". Se fosse app.post, responderia a POST, e assim por diante.
+'/pets' — é o caminho (path) da URL. Quando alguém acessar http://localhost:3000/pets, o Express vai procurar se existe uma rota GET registrada para /pets. Se achar, executa a função associada.
+	(req, res) => { ... } — essa é a função que o Express executa quando a rota é acionada. Ela recebe dois parâmetros automaticamente:
+
+	req (request) — representa tudo que veio do cliente: a URL, os parâmetros, o body, os headers. É a "caixa de entrada".
+res (response) — representa a resposta que você vai mandar de volta. É a "caixa de saída".
+
+	res.status(200) — define o código de status HTTP da resposta. O 200 significa "OK — tudo deu certo". Esse método retorna o próprio res, o que permite encadear o próximo método direto.
+	.json(pets) — pega o array pets, converte para uma string JSON, define o header Content-Type: application/json e envia a resposta para o cliente. Após essa linha, a requisição está encerrada — nada mais pode ser enviado.
+
+	Juntando tudo, em português:
+"Quando chegarem uma requisição GET em /pets,
+execute essa função, e nela:
+defina o status 200 e envie o array pets como JSON."
+
+	Uma coisa importante para fixar: req e res são só nomes por convenção. Você poderia chamar de request e response, ou a e b — o Express não liga para o nome, só para a posição. Mas todo mundo usa req e res, então vale seguir o padrão.
+
+passo 3:
+'/pets/:id' — o :id é um parâmetro dinâmico. O Express vai capturar qualquer coisa que vier depois de /pets/ e guardar com o nome id. Então /pets/1, /pets/2, /pets/99 — todos caem nessa mesma rota.
+req.params — é onde o Express guarda os parâmetros dinâmicos da URL. Como a rota tem :id, o objeto req.params vai ter a propriedade id com o valor que veio na URL. O destructuring const { id } = req.params é a forma moderna de pegar esse valor — equivale a const id = req.params.id.
+pets.find(p => p.id === Number(id)) — percorre o array procurando o primeiro pet cujo id seja igual ao valor recebido. O Number(id) é a conversão de tipo obrigatória: o que vem de req.params é sempre uma string "1", mas os IDs no array são números 1. Sem converter, "1" === 1 retorna false e o pet nunca é encontrado.
+if (!pet) — se o find não achar nada, ele retorna undefined, que é um valor falso em JavaScript. Esse if trata esse caso e responde com 404. O return é importante aqui — ele interrompe a função para que a linha seguinte não execute também.
+res.status(200).json(pet) — se o pet foi encontrado, responde com ele.
