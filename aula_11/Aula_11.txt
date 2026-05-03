@@ -62,3 +62,49 @@ req.params — é onde o Express guarda os parâmetros dinâmicos da URL. Como a
 pets.find(p => p.id === Number(id)) — percorre o array procurando o primeiro pet cujo id seja igual ao valor recebido. O Number(id) é a conversão de tipo obrigatória: o que vem de req.params é sempre uma string "1", mas os IDs no array são números 1. Sem converter, "1" === 1 retorna false e o pet nunca é encontrado.
 if (!pet) — se o find não achar nada, ele retorna undefined, que é um valor falso em JavaScript. Esse if trata esse caso e responde com 404. O return é importante aqui — ele interrompe a função para que a linha seguinte não execute também.
 res.status(200).json(pet) — se o pet foi encontrado, responde com ele.
+
+passo 4(post):
+
+req.body: é onde ficam os dados que o ecliente enviou no corpo da requisição;
+
+if (!nome) — valida se o campo nome veio preenchido. Se não veio, responde com status 400 Bad Request e interrompe.
+
+id: pets.length + 1 — gera um ID simples baseado no tamanho atual do array.
+
+pets.push(novoPet) — insere o novo pet no array.
+
+res.status(201) — o status 201 significa "Created". É mais correto que o 200 aqui porque não só deu certo — um recurso novo foi criado.
+
+passo 5(put):
+
+pets.findIndex(...) — parecido com o find que usamos antes, mas em vez de retornar o objeto, retorna a posição dele no array. Se não encontrar, retorna -1. Precisamos da posição porque a intenção é substituir o item diretamente.
+
+if (index === -1) — trata o caso em que o pet não existe.
+
+pets[index] = { id: Number(id), ...req.body } — essa é a linha central do PUT. Ela substitui o objeto inteiro na posição encontrada. O ...req.body é o spread operator — ele "espalha" todos os campos que vieram no body. O id: Number(id) vem separado antes para garantir que o ID original não seja sobrescrito por engano.
+
+O que é req.params?
+Quando você define uma rota com :id, o Express captura o valor que vier naquele trecho da URL e guarda dentro do objeto req.params
+
+passo 5(patch):
+
+No PUT você usou findIndex para pegar a posição e substituir o objeto inteiro. No PATCH você usa find para pegar o próprio objeto — porque a intenção não é substituir, é modificar campos pontuais.
+
+if (req.body.nome) pet.nome = req.body.nome — só atualiza o campo se ele veio no body. Se o cliente não mandou nome, essa linha é ignorada e o valor original fica intacto. Isso se repete para cada campo.
+
+passo 6(delete):
+const tamanhoInicial = pets.length — guarda o tamanho do array antes de qualquer alteração. Isso serve como referência para saber depois se algum pet foi removido.
+
+pets.filter(p => p.id !== Number(id)) — percorre o array e retorna um novo array contendo apenas os pets cujo ID é diferente do ID recebido. O pet com o ID informado simplesmente fica de fora. Esse novo array substitui o original.
+
+if (pets.length === tamanhoInicial) — se o tamanho não mudou, significa que nenhum pet foi removido, ou seja, o ID informado não existia. Responde com 404.
+
+res.status(204).send() — o status 204 significa "No Content" — deu certo, mas não há nada para devolver no corpo da resposta. Por isso usa .send() vazio em vez de .json().
+
+middleware final(log e rota não encontrada):
+
+Middleware de log — executa em toda requisição que chegar e imprime no terminal a data, o método HTTP e a URL acessada. 
+O next() é obrigatório aqui — ele passa a requisição para o próximo middleware ou rota. Sem ele, a requisição trava nesse middleware e nunca chega na rota.
+new Date().toISOString() — gera um timestamp no formato 2026-05-02T14:30:00.000Z. Útil para saber exatamente quando cada requisição aconteceu.
+
+Middleware 404 final — como o Express lê as rotas em ordem, se uma requisição chegar aqui é porque não bateu com nenhuma rota registrada acima. Esse middleware captura tudo que "sobrou" e responde com 404. Repare que ele não tem next() — aqui a viagem termina.

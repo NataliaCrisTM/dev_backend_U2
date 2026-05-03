@@ -1,0 +1,20 @@
+SoC (Separetion of Concerns) -> cada parte do código deve ter uma única responsabiidade.
+
+Passo 1 (Isolar banco de dados no arquivo petData.js):
+Exportar o array através de "export" para outros arquivos poderem usá-lo. Por que separar? Se amanhã trocarmos o array por um banco de dados real (MongoDB, Postgres), só esse arquivo muda. O controller nem percebe a diferença.
+
+Passo 2 (Criar o controller):
+O Controller é o "cérebro". Ele recebe req, processa e envia res. 
+
+Passo 3 (Criar o route):
+O router só decide: "se chegar um GET em /, chame listarPets". Ele não sabe como listar — isso é responsabilidade do controller.
+
+Passo 4 (app.js e server.js separados):
+Separar app.js de server.js permite testar a API sem precisar subir o servidor de verdade.
+
+Middlewares:
+Um middleware é uma função executada entre a chegada da requisição e o envio da resposta. Ele pode inspecionar, modificar, rejeitar ou passar adiante com next().
+A requisição é um produto numa fábrica. Cada middleware é uma estação: pode inspecionar (log), alterar (parsear JSON), rejeitar (403) ou aprovar e chamar next() para a próxima estação.
+1. express.json() — já estava no seu código. Transforma o corpo da requisição de texto bruto em objeto JS. Sem ele, req.body é undefined.
+2. app.use('/api/pets', petRoutes) — o próprio router é um middleware! Filtra requisições pelo prefixo e as delega.
+3.Middleware de log — já estava no seu código, capturando método e URL de cada requisição.
