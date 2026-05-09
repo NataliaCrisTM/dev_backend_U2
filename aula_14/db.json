@@ -1,0 +1,20 @@
+{
+  "users": [],
+  "pets": [
+    {
+      "id": 1778353364913,
+      "nome": "Rex",
+      "especie": "cachorro",
+      "raça": "labrador",
+      "idade": 3
+    },
+    {
+      "id": 1778353497704,
+      "nome": "Rex",
+      "sobrenome": "Tertuliano",
+      "especie": "cachorro",
+      "raça": "labrador",
+      "idade": 3
+    }
+  ]
+}
