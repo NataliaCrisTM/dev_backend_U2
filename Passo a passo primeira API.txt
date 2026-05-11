@@ -1,0 +1,68 @@
+Passo a passo primeira API
+Passo 1 - Inicializar o projeto
+Configurar o package.json com ES Modules e instalar todas as dependências necessárias.
+
+Por que cada dependência:
+
+express → framework web principal, cuida de rotas, middlewares e requisições HTTP
+lowdb → banco de dados em arquivo JSON, simples e sem configuração extra; usamos a v7+ que já é ESM nativa
+express-validator → validação declarativa de campos (body, params, query) integrada ao Express
+pug → template engine para renderizar HTML no servidor
+uuid → geração de IDs únicos (UUIDs v4) para games e reviews
+
+Passo 2 - Criar banco de dados com lowdb
+Criar a instância única do lowdb que será compartilhada por todos os repositórios. É aqui que definimos a estrutura inicial do arquivo JSON e o caminho onde ele será salvo.
+
+Passo 3 - Criar o servidor
+Criar o src/server.js, que tem uma responsabilidade única e bem delimitada — importar o app Express já configurado e chamar o app.listen() para subir o servidor na porta definida.
+
+O server-.js não configura nada, apenas liga o motor.
+
+Passo 4 - Configurar o Express com src/app.js
+Criar o coração da aplicação — onde registramos todos os middlewares, configuramos o PUG, servimos arquivos estáticos e conectamos as rotas. Este arquivo ainda não importa as rotas (que não existem ainda), mas já deixamos os imports prontos e comentados para adicionar nos passos seguintes.
+
+Passo 5 - Criar os repositórios
+Criar os dois repositórios — gameRepository.js e reviewRepository.js. Eles são a única camada que toca o db diretamente. Nenhuma outra camada (service, controller) acessa o banco — tudo passa por aqui.
+
+Passo 6 - Criar os services
+Criar gameService.js e reviewService.js. É aqui que mora toda a lógica de negócio — validar se um game existe antes de criar uma review, impedir review duplicada, deletar a review junto com o game, etc. Os services não sabem nada sobre HTTP — eles só lançam erros com statusCode e o controller decide o que fazer com isso.
+
+Por que o service importa dois repositórios?
+Regras de negócio frequentemente cruzam entidades. O gameService precisa do reviewRepository para deletar a review ao remover um game. O reviewService precisa do gameRepository para validar se o game existe antes de criar uma review. Isso é normal e esperado na camada de service.
+
+Services são síncronos quando possível
+getAll(), getById() e getByGameId() não precisam de async/await porque os repositórios de leitura são síncronos. Só os métodos que chamam operações de escrita (create, update, delete) precisam de await.
+
+Passo 7 - Criar os DTOs
+
+Criar gameDto.js e reviewDto.js. DTOs (Data Transfer Objects) são classes simples que recebem o objeto cru do banco e expõem apenas os campos que queremos enviar ao cliente — na forma e ordem que queremos. É a última camada antes de res.json().
+
+Por que usar DTOs se os campos são os mesmos do banco?
+Hoje os campos coincidem — mas o DTO é uma camada de proteção para o futuro. Se amanhã o banco ganhar um campo interno (ex: _hash, deletedAt, passwordHash), ele nunca vazará para o cliente porque o DTO define explicitamente o que sai. Sem DTO, qualquer campo novo no banco vai automaticamente para a resposta.
+
+GameDto vs GameComReviewDto
+Temos dois DTOs para game com propósitos distintos:
+
+GameDto → usado nas rotas /api/games (CRUD puro, sem review embutida)
+GameComReviewDto → usado na página web /games-view, que exibe cada jogo com sua review lado a lado
+
+ReviewResumoDto — classe interna não exportada
+É usada apenas dentro do GameComReviewDto para formatar a review embutida. Como nenhum outro arquivo precisa dela, não exportamos — fica encapsulada no módulo.
+
+Passo 8 - Criar os validators
+Criar gameValidator.js e reviewValidator.js em src/middlewares/. Cada validator é um array de middlewares do express-validator que roda entre a rota e o controller — se a validação falhar, a requisição para aqui mesmo e retorna 400 com a lista de erros.
+
+Passo 9 - Criar os controllers
+Criar gameController.js e reviewController.js. Controllers são responsáveis apenas pelo "caminho feliz" — recebem a requisição, chamam o service, aplicam o DTO e respondem. Qualquer erro vai direto para o next(err) sem tratamento local.
+
+Passo 10 - Criar as rotas da API
+Criar gameRoutes.js e reviewRoutes.js, conectando cada URL ao seu validator e controller correspondente. Depois vamos descomentar os imports no app.js para ativar as rotas.
+
+Passo 11 - Criar o Middleware de Erro Centralizado
+Criar o errorMiddleware.js e ativá-lo no app.js. Este é o único lugar em toda a aplicação que transforma erros em respostas HTTP — nenhum controller ou service precisa saber disso.
+
+Passo 12 - Criar a camada web completa — 
+controller que busca os dados, as rotas, e os dois templates PUG (main.pug como layout base e games.pug como página). Depois ativamos tudo no app.js.
+
+Passo 13 - Criar o CSS
+Criar o style.css que estiliza a página /games-view. O design usa variáveis CSS, é responsivo e tem cores diferentes por status do jogo e por plataforma.
